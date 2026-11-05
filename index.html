@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0a0a0b">
-  <meta name="description" content="Moiré is a quiet personal wallpaper library. Browse, preview, and copy direct links to every image.">
-  <title>Moiré Personal Wallpaper Library</title>
+  <meta name="description" content="Moiré, a personal wallpaper library.">
+  <title>Moiré — Wallpapers</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
@@ -49,9 +49,6 @@
       <path d="m4 16 5-5 4 4 2-2 5 4"></path>
       <path d="M3 3l18 18"></path>
     </symbol>
-    <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="m5 12 4 4 10-10"></path>
-    </symbol>
   </svg>
 
   <div class="site-shell">
@@ -64,57 +61,42 @@
     </header>
 
     <main>
-      <section class="intro" aria-labelledby="intro-title">
-        <p class="eyebrow">Personal wallpaper library</p>
-        <h1 id="intro-title">Surfaces worth keeping.</h1>
-        <p class="intro-copy">Browse the collection, view any wallpaper at full resolution, and copy a direct image link for the screen it belongs on.</p>
-      </section>
-
       <section class="collection" id="collection" aria-labelledby="collection-title">
-        <h2 class="sr-only" id="collection-title">Wallpaper collection</h2>
+        <h1 class="sr-only" id="collection-title">Wallpapers</h1>
 
-        <div class="toolbar" role="search" aria-label="Filter wallpapers">
+        <div class="toolbar">
           <div class="search-field">
             <svg class="field-icon" aria-hidden="true"><use href="#icon-search"></use></svg>
             <label class="sr-only" for="search-input">Search wallpapers</label>
-            <input id="search-input" type="search" placeholder="Search titles and tags" autocomplete="off" spellcheck="false">
+            <input id="search-input" type="search" placeholder="Search wallpapers" autocomplete="off" spellcheck="false">
             <button class="search-clear" id="search-clear" type="button" aria-label="Clear search" hidden>
               <svg aria-hidden="true"><use href="#icon-close"></use></svg>
             </button>
           </div>
 
-          <div class="filter-field">
-            <label class="sr-only" for="category-filter">Filter by category</label>
-            <select id="category-filter">
-              <option value="">All categories</option>
-            </select>
-            <svg class="filter-chevron" aria-hidden="true"><use href="#icon-chevron"></use></svg>
+          <div class="orientation-filter" role="group" aria-label="Filter by orientation">
+            <button class="orientation-button is-active" type="button" data-orientation="" aria-pressed="true">All</button>
+            <button class="orientation-button" type="button" data-orientation="portrait" aria-pressed="false">Portrait</button>
+            <button class="orientation-button" type="button" data-orientation="landscape" aria-pressed="false">Landscape</button>
+            <button class="orientation-button" type="button" data-orientation="square" aria-pressed="false">Square</button>
           </div>
 
-          <div class="filter-field">
-            <label class="sr-only" for="tag-filter">Filter by tag</label>
-            <select id="tag-filter">
-              <option value="">All tags</option>
-            </select>
-            <svg class="filter-chevron" aria-hidden="true"><use href="#icon-chevron"></use></svg>
-          </div>
-
-          <div class="filter-field">
+          <div class="sort-field">
             <label class="sr-only" for="sort-filter">Sort wallpapers</label>
             <select id="sort-filter">
               <option value="manual">Manual order</option>
-              <option value="alphabetical">Alphabetical</option>
+              <option value="alphabetical">Title A–Z</option>
             </select>
-            <svg class="filter-chevron" aria-hidden="true"><use href="#icon-chevron"></use></svg>
+            <svg class="sort-chevron" aria-hidden="true"><use href="#icon-chevron"></use></svg>
           </div>
         </div>
 
         <div class="results-bar">
           <div class="results-summary">
-            <p class="results-count" id="results-count" aria-live="polite">Loading collection…</p>
+            <p class="results-count" id="results-count" aria-live="polite">Loading…</p>
             <button class="text-button" id="clear-filters" type="button" hidden>Clear filters</button>
           </div>
-          <div class="link-actions" aria-label="Collection link tools">
+          <div class="link-actions" role="group" aria-label="Wallpaper link tools">
             <button class="tool-button" id="copy-all" type="button" title="Copy every wallpaper URL">
               <svg aria-hidden="true"><use href="#icon-copy"></use></svg>
               <span>Copy all</span>
@@ -123,8 +105,9 @@
               <svg aria-hidden="true"><use href="#icon-copy"></use></svg>
               <span>Copy shown</span>
             </button>
-            <button class="tool-button tool-button--icon" id="download-all" type="button" title="Download all wallpaper URLs as a text file" aria-label="Download all wallpaper URLs as a text file">
+            <button class="tool-button" id="download-all" type="button" title="Download all wallpaper URLs as a text file">
               <svg aria-hidden="true"><use href="#icon-download"></use></svg>
+              <span>Download list</span>
             </button>
           </div>
         </div>
@@ -133,22 +116,20 @@
 
         <section class="state-panel" id="empty-collection" aria-labelledby="empty-title" hidden>
           <svg class="state-icon" aria-hidden="true"><use href="#icon-image-off"></use></svg>
-          <p class="state-kicker">Empty collection</p>
           <h2 id="empty-title">No wallpapers yet.</h2>
-          <p>Add your first image through Pages CMS. It will appear here after the next GitHub Pages build.</p>
-          <a class="button" href="https://app.pagescms.org/" target="_blank" rel="noopener noreferrer">Open Pages CMS</a>
+          <p>Add images to <code>images/wallpapers/</code>, then run:</p>
+          <code class="empty-command">python3 scripts/sync_wallpapers.py</code>
+          <p class="state-hint">Reload the page after the manifest is updated.</p>
         </section>
 
         <section class="state-panel" id="empty-results" aria-labelledby="empty-results-title" hidden>
           <svg class="state-icon" aria-hidden="true"><use href="#icon-search"></use></svg>
-          <p class="state-kicker">No matches</p>
-          <h2 id="empty-results-title">Nothing fits that view.</h2>
-          <p>Try a different search, category, or tag.</p>
+          <h2 id="empty-results-title">No matching wallpapers.</h2>
+          <p>Try another title or orientation.</p>
           <button class="button" id="empty-clear-filters" type="button">Clear filters</button>
         </section>
 
         <section class="state-panel state-panel--error" id="error-state" aria-labelledby="error-title" hidden>
-          <p class="state-kicker">Collection unavailable</p>
           <h2 id="error-title">The wallpapers could not be loaded.</h2>
           <p id="error-message">The manifest may be missing or malformed.</p>
           <button class="button" id="retry-button" type="button">Try again</button>
@@ -161,14 +142,11 @@
     </main>
 
     <footer class="site-footer">
-      <div>
-        <p class="footer-brand">Moiré</p>
-        <p class="footer-copy">A personal wallpaper library. Built for GitHub Pages and managed with Pages CMS.</p>
-      </div>
+      <a class="footer-brand" href="./">Moiré</a>
       <nav class="footer-links" aria-label="Project links">
         <a href="https://github.com/Speyll/moire" target="_blank" rel="noopener noreferrer">GitHub</a>
         <a id="footer-manifest-link" href="data/wallpapers.json">JSON manifest</a>
-        <a href="https://pagescms.org/" target="_blank" rel="noopener noreferrer">Pages CMS</a>
+        <a href="README.md">README</a>
       </nav>
     </footer>
   </div>
@@ -177,8 +155,8 @@
     <div class="preview-shell">
       <header class="preview-header">
         <div class="preview-heading">
-          <p class="preview-category" id="preview-category"></p>
           <h2 id="preview-title">Wallpaper preview</h2>
+          <p class="preview-meta" id="preview-meta"></p>
         </div>
         <div class="preview-header-actions">
           <span class="preview-counter" id="preview-counter"></span>
@@ -203,10 +181,7 @@
       </div>
 
       <footer class="preview-footer">
-        <div class="preview-details">
-          <p class="preview-description" id="preview-description" hidden></p>
-          <ul class="preview-tags" id="preview-tags" aria-label="Tags"></ul>
-        </div>
+        <p class="preview-description" id="preview-description" hidden></p>
         <div class="preview-actions">
           <button class="button button--compact" id="preview-copy" type="button">
             <svg aria-hidden="true"><use href="#icon-copy"></use></svg>

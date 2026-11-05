@@ -4,6 +4,7 @@
   const SITE_BASE = new URL("./", window.location.href);
   const BASE_PATH = SITE_BASE.pathname.replace(/\/+$/, "");
   const MANIFEST_URL = new URL("data/wallpapers.json", SITE_BASE).href;
+  const VALID_ORIENTATIONS = new Set(["portrait", "landscape", "square"]);
   const collator = new Intl.Collator(undefined, {
     numeric: true,
     sensitivity: "base",
@@ -15,8 +16,7 @@
     headerCount: document.getElementById("header-count"),
     searchInput: document.getElementById("search-input"),
     searchClear: document.getElementById("search-clear"),
-    categoryFilter: document.getElementById("category-filter"),
-    tagFilter: document.getElementById("tag-filter"),
+    orientationButtons: Array.from(document.querySelectorAll("[data-orientation]")),
     sortFilter: document.getElementById("sort-filter"),
     clearFilters: document.getElementById("clear-filters"),
     emptyClearFilters: document.getElementById("empty-clear-filters"),
@@ -32,10 +32,9 @@
     footerManifestLink: document.getElementById("footer-manifest-link"),
     preview: document.getElementById("preview"),
     previewTitle: document.getElementById("preview-title"),
-    previewCategory: document.getElementById("preview-category"),
+    previewMeta: document.getElementById("preview-meta"),
     previewCounter: document.getElementById("preview-counter"),
     previewDescription: document.getElementById("preview-description"),
-    previewTags: document.getElementById("preview-tags"),
     previewImage: document.getElementById("preview-image"),
     previewImageError: document.getElementById("preview-image-error"),
     previewLoader: document.getElementById("preview-loader"),
@@ -51,8 +50,7 @@
     all: [],
     visible: [],
     query: "",
-    category: "",
-    tag: "",
+    orientation: "",
     sort: "manual",
     loading: true,
     error: null,
@@ -66,6 +64,13 @@
     return typeof value === "string" ? value.trim() : "";
   }
 
+  function positiveInteger(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 && Number.isInteger(number)
+      ? number
+      : null;
+  }
+
   function normalizeForSearch(value) {
     return String(value)
       .normalize("NFD")
@@ -73,17 +78,32 @@
       .toLocaleLowerCase();
   }
 
-  function uniqueStrings(values) {
-    return [...new Set(values.map(asString).filter(Boolean))];
+  function orientationFor(width, height) {
+    if (!width || !height) return "";
+    if (width > height) return "landscape";
+    if (width < height) return "portrait";
+    return "square";
+  }
+
+  function orientationLabel(orientation) {
+    if (orientation === "portrait") return "Portrait";
+    if (orientation === "landscape") return "Landscape";
+    if (orientation === "square") return "Square";
+    return "";
+  }
+
+  function formatDimensions(width, height) {
+    if (!width || !height) return "";
+    return `${width} × ${height}`;
   }
 
   /**
    * The single source of truth for turning a manifest image path into a public
-   * URL. Both the gallery and every exported link use this function.
+   * URL. The gallery, preview, card actions and bulk exports all use it.
    *
-   * Pages CMS can write paths such as /images/wallpapers/a.webp. GitHub Pages
-   * project sites live under /moire/, so leading slashes must be rebased rather
-   * than resolved against the domain root.
+   * Manifest paths can be repository-relative or root-relative. GitHub Pages
+   * project sites live under /moire/, so leading slashes are rebased under the
+   * current project path rather than resolved against the domain root.
    */
   function resolveImagePath(value) {
     if (typeof value !== "string") return null;
@@ -136,28 +156,21 @@
     }
 
     const title = asString(raw.title) || "Untitled wallpaper";
-    const category = asString(raw.category) || "Uncategorized";
     const image = asString(raw.image);
     const imageUrl = resolveImagePath(image);
     const id = asString(raw.id) || `wallpaper-${index}`;
+    const width = positiveInteger(raw.width);
+    const height = positiveInteger(raw.height);
+    const storedOrientation = asString(raw.orientation);
+    const orientation =
+      orientationFor(width, height) ||
+      (VALID_ORIENTATIONS.has(storedOrientation) ? storedOrientation : "");
     const description = asString(raw.description);
     const numericOrder =
       raw.order === null || raw.order === undefined || raw.order === ""
         ? null
         : Number(raw.order);
     const order = Number.isFinite(numericOrder) ? numericOrder : null;
-
-    let rawTags = [];
-    if (Array.isArray(raw.tags)) {
-      rawTags = raw.tags;
-    } else if (typeof raw.tags === "string") {
-      rawTags = raw.tags.split(",");
-    }
-
-    const tags = uniqueStrings(rawTags);
-    const searchText = normalizeForSearch(
-      [title, category, tags.join(" "), description].join(" ")
-    );
 
     if (image && !imageUrl) {
       console.warn(`Could not resolve the image path for "${title}".`);
@@ -168,12 +181,13 @@
       title,
       image,
       imageUrl,
-      category,
-      tags,
+      width,
+      height,
+      orientation,
       description,
       order,
       index,
-      searchText,
+      searchText: normalizeForSearch(title),
     };
   }
 
@@ -197,8 +211,9 @@
     const terms = normalizeForSearch(state.query).split(/\s+/).filter(Boolean);
 
     const filtered = state.all.filter((wallpaper) => {
-      if (state.category && wallpaper.category !== state.category) return false;
-      if (state.tag && !wallpaper.tags.includes(state.tag)) return false;
+      if (state.orientation && wallpaper.orientation !== state.orientation) {
+        return false;
+      }
       if (terms.length > 0 && !terms.every((term) => wallpaper.searchText.includes(term))) {
         return false;
       }
@@ -237,6 +252,7 @@
   function buildCard(wallpaper, index) {
     const card = document.createElement("article");
     card.className = "wallpaper-card";
+    card.dataset.orientation = wallpaper.orientation || "unknown";
     card.style.setProperty("--card-index", String(Math.min(index, 16)));
 
     const media = document.createElement("div");
@@ -308,31 +324,22 @@
     const info = document.createElement("div");
     info.className = "card-info";
 
-    const title = document.createElement("h3");
+    const title = document.createElement("h2");
     title.className = "card-title";
     title.textContent = wallpaper.title;
     title.title = wallpaper.title;
 
-    const category = document.createElement("span");
-    category.className = "card-category";
-    category.textContent = wallpaper.category;
+    info.append(title);
 
-    info.append(title, category);
-
-    const tags = document.createElement("p");
-    tags.className = "card-tags";
-    wallpaper.tags.slice(0, 3).forEach((tag) => {
-      const tagLabel = document.createElement("span");
-      tagLabel.textContent = tag;
-      tags.append(tagLabel);
-    });
-    if (wallpaper.tags.length > 3) {
-      const more = document.createElement("span");
-      more.textContent = `+${wallpaper.tags.length - 3}`;
-      tags.append(more);
+    const dimensions = formatDimensions(wallpaper.width, wallpaper.height);
+    if (dimensions) {
+      const meta = document.createElement("span");
+      meta.className = "card-meta";
+      meta.textContent = dimensions;
+      info.append(meta);
     }
 
-    card.append(media, info, tags);
+    card.append(media, info);
     return card;
   }
 
@@ -348,16 +355,16 @@
 
   function renderSkeletons() {
     const fragment = document.createDocumentFragment();
-    for (let index = 0; index < 8; index += 1) {
+    for (let index = 0; index < 10; index += 1) {
       const card = document.createElement("div");
       card.className = "wallpaper-card skeleton-card";
       const media = document.createElement("div");
       media.className = "skeleton-media";
       const title = document.createElement("div");
       title.className = "skeleton-line skeleton-line--title";
-      const tag = document.createElement("div");
-      tag.className = "skeleton-line skeleton-line--tag";
-      card.append(media, title, tag);
+      const meta = document.createElement("div");
+      meta.className = "skeleton-line skeleton-line--meta";
+      card.append(media, title, meta);
       fragment.append(card);
     }
     elements.gallery.replaceChildren(fragment);
@@ -365,37 +372,9 @@
     elements.gallery.setAttribute("aria-busy", "true");
   }
 
-  function buildFilterOptions() {
-    const categories = uniqueStrings(state.all.map((item) => item.category)).sort(
-      (a, b) => collator.compare(a, b)
-    );
-    const tags = uniqueStrings(state.all.flatMap((item) => item.tags)).sort(
-      (a, b) => collator.compare(a, b)
-    );
-
-    const categoryOption = new Option("All categories", "");
-    const tagOption = new Option("All tags", "");
-
-    elements.categoryFilter.replaceChildren(
-      categoryOption,
-      ...categories.map((category) => new Option(category, category))
-    );
-    elements.tagFilter.replaceChildren(
-      tagOption,
-      ...tags.map((tag) => new Option(tag, tag))
-    );
-
-    if (!categories.includes(state.category)) state.category = "";
-    if (!tags.includes(state.tag)) state.tag = "";
-
-    elements.categoryFilter.value = state.category;
-    elements.tagFilter.value = state.tag;
-    elements.sortFilter.value = state.sort;
-  }
-
   function updateCounts() {
     if (state.loading) {
-      elements.resultsCount.textContent = "Loading collection…";
+      elements.resultsCount.textContent = "Loading…";
       elements.headerCount.textContent = "";
       return;
     }
@@ -421,8 +400,16 @@
       shown === total ? totalLabel : `${shown} of ${total} wallpapers`;
   }
 
+  function updateOrientationButtons() {
+    elements.orientationButtons.forEach((button) => {
+      const isActive = button.dataset.orientation === state.orientation;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", String(isActive));
+    });
+  }
+
   function updateControls() {
-    const hasFilters = Boolean(state.query || state.category || state.tag);
+    const hasFilters = Boolean(state.query || state.orientation);
     elements.searchClear.hidden = !state.query;
     elements.clearFilters.hidden = !hasFilters;
 
@@ -444,10 +431,7 @@
     elements.emptyResults.hidden = !hasNoResults;
     elements.errorState.hidden = !state.error;
 
-    if (isEmpty) {
-      elements.gallery.hidden = true;
-    }
-    if (hasNoResults) {
+    if (isEmpty || hasNoResults) {
       elements.gallery.hidden = true;
     }
   }
@@ -460,11 +444,8 @@
       if (state.query) url.searchParams.set("q", state.query);
       else url.searchParams.delete("q");
 
-      if (state.category) url.searchParams.set("category", state.category);
-      else url.searchParams.delete("category");
-
-      if (state.tag) url.searchParams.set("tag", state.tag);
-      else url.searchParams.delete("tag");
+      if (state.orientation) url.searchParams.set("orientation", state.orientation);
+      else url.searchParams.delete("orientation");
 
       if (state.sort === "alphabetical") url.searchParams.set("sort", "alphabetical");
       else url.searchParams.delete("sort");
@@ -479,6 +460,7 @@
     state.visible = getVisibleWallpapers();
     renderGallery();
     updateCounts();
+    updateOrientationButtons();
     updateControls();
     updateEmptyStates();
     syncUrl();
@@ -496,6 +478,7 @@
     renderSkeletons();
     updateCounts();
     updateControls();
+    updateOrientationButtons();
   }
 
   function showError(error) {
@@ -552,7 +535,6 @@
       state.loading = false;
       state.error = null;
 
-      buildFilterOptions();
       applyFilters();
     } catch (error) {
       console.error("Failed to load wallpapers:", error);
@@ -562,13 +544,15 @@
 
   function loadStateFromUrl() {
     const params = new URLSearchParams(window.location.search);
+    const orientation = params.get("orientation") || "";
+
     state.query = (params.get("q") || "").slice(0, 200);
-    state.category = params.get("category") || "";
-    state.tag = params.get("tag") || "";
+    state.orientation = VALID_ORIENTATIONS.has(orientation) ? orientation : "";
     state.sort = params.get("sort") === "alphabetical" ? "alphabetical" : "manual";
 
     elements.searchInput.value = state.query;
     elements.sortFilter.value = state.sort;
+    updateOrientationButtons();
   }
 
   async function copyText(text) {
@@ -720,21 +704,16 @@
 
     const total = state.visible.length;
     const hasImage = Boolean(wallpaper.imageUrl);
+    const meta = [
+      orientationLabel(wallpaper.orientation),
+      formatDimensions(wallpaper.width, wallpaper.height),
+    ].filter(Boolean);
 
     elements.previewTitle.textContent = wallpaper.title;
-    elements.previewCategory.textContent = wallpaper.category;
+    elements.previewMeta.textContent = meta.join(" · ");
     elements.previewCounter.textContent = `${state.previewIndex + 1} / ${total}`;
     elements.previewDescription.textContent = wallpaper.description;
     elements.previewDescription.hidden = !wallpaper.description;
-
-    elements.previewTags.replaceChildren(
-      ...wallpaper.tags.map((tag) => {
-        const item = document.createElement("li");
-        item.textContent = tag;
-        return item;
-      })
-    );
-    elements.previewTags.hidden = wallpaper.tags.length === 0;
 
     elements.previewPrev.disabled = total < 2;
     elements.previewNext.disabled = total < 2;
@@ -782,11 +761,8 @@
 
   function clearFilters() {
     state.query = "";
-    state.category = "";
-    state.tag = "";
+    state.orientation = "";
     elements.searchInput.value = "";
-    elements.categoryFilter.value = "";
-    elements.tagFilter.value = "";
     applyFilters();
     elements.searchInput.focus();
   }
@@ -804,14 +780,12 @@
       elements.searchInput.focus();
     });
 
-    elements.categoryFilter.addEventListener("change", () => {
-      state.category = elements.categoryFilter.value;
-      applyFilters();
-    });
-
-    elements.tagFilter.addEventListener("change", () => {
-      state.tag = elements.tagFilter.value;
-      applyFilters();
+    elements.orientationButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const orientation = button.dataset.orientation || "";
+        state.orientation = VALID_ORIENTATIONS.has(orientation) ? orientation : "";
+        applyFilters();
+      });
     });
 
     elements.sortFilter.addEventListener("change", () => {
