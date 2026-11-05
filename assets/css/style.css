@@ -801,9 +801,7 @@ code {
 
 /* Permanent wallpaper URL feeds */
 .feeds {
-  padding: 1.15rem 0 0;
-  margin-top: clamp(1.75rem, 4vw, 2.75rem);
-  border-top: 1px solid var(--line);
+  margin-top: clamp(2rem, 4vw, 3rem);
 }
 
 .feeds-title {
@@ -815,10 +813,8 @@ code {
 }
 
 .feeds-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 1.6rem;
-  margin: 0.55rem 0 0;
+  max-width: 32rem;
+  margin: 0.35rem 0 0;
   padding: 0;
   list-style: none;
 }
@@ -826,21 +822,39 @@ code {
 .feed-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.feed-item:last-child {
+  border-bottom: 0;
 }
 
 .feed-name {
+  flex: 0 0 auto;
   color: var(--text-soft);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
+}
+
+.feed-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
 }
 
 .feed-link {
+  overflow: hidden;
   padding-bottom: 1px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid transparent;
   color: var(--muted);
   font-size: 0.73rem;
   text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition: color 150ms ease, border-color 150ms ease;
 }
 
@@ -851,22 +865,25 @@ code {
 
 .feed-copy {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: var(--radius-small);
+  border-radius: 9px;
   background: transparent;
   color: var(--muted);
-  cursor: pointer;
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
 }
 
 .feed-copy svg {
-  width: 13px;
-  height: 13px;
+  flex: none;
+  width: 15px;
+  height: 15px;
 }
 
 .feed-copy:hover {
@@ -1205,8 +1222,8 @@ code {
     gap: 0.7rem;
   }
 
-  .feeds-list {
-    gap: 0.45rem 1.25rem;
+  .feed-item {
+    gap: 0.6rem;
   }
 
   .preview-stage {
