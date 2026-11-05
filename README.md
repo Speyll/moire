@@ -4,6 +4,8 @@ A small personal wallpaper library hosted on GitHub Pages. Wallpapers live in th
 
 There is no build step, package manager, database, backend, external image host, or third-party service. The repository is the content source.
 
+A GitHub Actions workflow keeps the wallpaper manifest in sync and deploys the site automatically whenever changes are pushed to `main`. Local Python and manual sync runs are optional.
+
 ## Public addresses
 
 Once GitHub Pages is enabled:
@@ -18,6 +20,9 @@ The site is a GitHub Pages project site, so it lives under `/moire/`. Manifest p
 
 ```text
 moire/
+├── .github/
+│   └── workflows/
+│       └── sync-and-deploy.yml
 ├── index.html
 ├── .nojekyll
 ├── README.md
@@ -42,22 +47,28 @@ moire/
 
 ## Add wallpapers
 
-1. Copy images into `images/wallpapers/`. Supported formats are JPG, JPEG, PNG, WebP, and AVIF.
-2. Preview the import:
+1. Add images to `images/wallpapers/`. Supported formats are JPG, JPEG, PNG, WebP, and AVIF.
+2. Commit and push the images to `main`.
 
-   ```bash
-   python3 scripts/sync_wallpapers.py --dry-run
-   ```
+The `Sync wallpapers and deploy` workflow then:
 
-3. Update the manifest:
+- Runs `scripts/sync_wallpapers.py` on a GitHub-hosted runner.
+- Adds any new images to `data/wallpapers.json`, preserving existing metadata and ordering.
+- Commits the updated manifest with a `github-actions[bot]` identity if it changed.
+- Deploys the updated site to GitHub Pages.
 
-   ```bash
-   python3 scripts/sync_wallpapers.py
-   ```
+No local Python installation is required.
 
-4. Review `data/wallpapers.json`, then commit and push the images and manifest.
+### Run the sync locally (optional)
 
-The script needs only Python 3 and its standard library. It can be run from any working directory.
+The manual sync remains available for local development. It needs only Python 3 and its standard library and can be run from any working directory.
+
+```bash
+python3 scripts/sync_wallpapers.py --dry-run
+python3 scripts/sync_wallpapers.py
+```
+
+Review `data/wallpapers.json`, then commit and push the images and manifest. The workflow also runs the sync, so pushing only the images is sufficient.
 
 ### What the sync script does
 
@@ -139,13 +150,29 @@ Then open <http://localhost:8000/moire/>.
 
 ## GitHub Pages setup
 
-1. Push the repository to `Speyll/moire` on the `main` branch.
-2. Open the repository on GitHub and go to **Settings → Pages**.
-3. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
-4. Choose branch **`main`** and folder **`/ (root)`**, then save.
-5. Wait for the deployment and open <https://speyll.github.io/moire/>.
+The site is now deployed by GitHub Actions, not from a branch. Change the repository setting once:
 
-No Actions workflow or build command is needed. `.nojekyll` keeps `assets/`, `data/`, and `scripts/` serving correctly.
+1. Open the repository on GitHub.
+2. Go to **Settings → Pages**.
+3. Under **Build and deployment**, set **Source** to **GitHub Actions**.
+4. Do not select **Deploy from a branch**.
+
+After that, push to `main` or run **Sync wallpapers and deploy** from the **Actions** tab. The workflow publishes <https://speyll.github.io/moire/>.
+
+If **Source** is left on **Deploy from a branch**, the `Deploy to GitHub Pages` job fails because `actions/deploy-pages` requires the GitHub Actions source.
+
+### What the workflow does
+
+- Triggers on pushes to `main` and on manual dispatch.
+- Uses a GitHub-hosted Ubuntu runner with Python 3.12.
+- Runs `scripts/sync_wallpapers.py` without modifying the site's HTML, CSS, or JavaScript.
+- Commits only `data/wallpapers.json` when it changes, using `github-actions[bot]` and a `[skip ci]` message.
+- Uploads the repository root as the Pages artifact, including `.nojekyll`, and deploys it with `actions/deploy-pages`.
+- Uses a `github-pages` concurrency group with `cancel-in-progress: false`, so pushes are queued instead of racing.
+- Grants only `contents: write` to the sync job and only `pages: write` plus `id-token: write` to the deploy job.
+- Pushes the bot commit with the workflow's `GITHUB_TOKEN`. Such pushes do not start new workflow runs, and the workflow also skips bot or `[skip ci]` pushes as a safeguard.
+
+The `/moire/` project-site prefix is unchanged. Image paths in the manifest remain repository-relative (`images/wallpapers/...`), and the gallery's existing URL resolver adds the correct base path.
 
 ## Gallery controls
 
