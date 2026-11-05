@@ -31,6 +31,8 @@
     retryButton: document.getElementById("retry-button"),
     manifestLink: document.getElementById("manifest-link"),
     footerManifestLink: document.getElementById("footer-manifest-link"),
+    feedLinks: Array.from(document.querySelectorAll("[data-feed-link]")),
+    feedCopyButtons: Array.from(document.querySelectorAll("[data-feed-copy]")),
     preview: document.getElementById("preview"),
     previewTitle: document.getElementById("preview-title"),
     previewMeta: document.getElementById("preview-meta"),
@@ -68,12 +70,8 @@
    */
   function validatePageStructure() {
     const missing = Object.entries(elements)
-      .filter(([key, value]) => key !== "orientationButtons" && !value)
+      .filter(([, value]) => (Array.isArray(value) ? value.length === 0 : !value))
       .map(([key]) => key);
-
-    if (elements.orientationButtons.length === 0) {
-      missing.push("orientationButtons");
-    }
 
     if (missing.length > 0) {
       throw new Error(
@@ -117,6 +115,15 @@
   function formatDimensions(width, height) {
     if (!width || !height) return "";
     return `${width} × ${height}`;
+  }
+
+  /**
+   * Feeds live in feeds/ and are generated at deploy time. Resolving them from
+   * the page base keeps the permanent /moire/feeds/... URLs on GitHub Pages
+   * while local previews get working localhost URLs.
+   */
+  function feedUrl(name) {
+    return new URL(`feeds/${name}.txt`, SITE_BASE).href;
   }
 
   /**
@@ -905,6 +912,17 @@
 
     elements.downloadAll.addEventListener("click", downloadAllUrls);
 
+    elements.feedCopyButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        copyText(button.dataset.feedUrl)
+          .then(() => showToast("Feed URL copied."))
+          .catch((error) => {
+            console.error(error);
+            showToast("The feed URL could not be copied.");
+          });
+      });
+    });
+
     elements.retryButton.addEventListener("click", loadWallpapers);
 
     elements.gallery.addEventListener("click", (event) => {
@@ -991,6 +1009,12 @@
       validatePageStructure();
       elements.manifestLink.href = MANIFEST_URL;
       elements.footerManifestLink.href = MANIFEST_URL;
+      elements.feedLinks.forEach((link) => {
+        link.href = feedUrl(link.dataset.feedLink);
+      });
+      elements.feedCopyButtons.forEach((button) => {
+        button.dataset.feedUrl = feedUrl(button.dataset.feedCopy);
+      });
       loadStateFromUrl();
       bindEvents();
       loadWallpapers();

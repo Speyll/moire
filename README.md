@@ -13,6 +13,7 @@ Once GitHub Pages is enabled:
 - Gallery: <https://speyll.github.io/moire/>
 - JSON manifest: <https://speyll.github.io/moire/data/wallpapers.json>
 - Image base: <https://speyll.github.io/moire/images/wallpapers/>
+- Feeds: <https://speyll.github.io/moire/feeds/all.txt>, plus `landscape.txt`, `portrait.txt`, and `square.txt`
 
 The site is a GitHub Pages project site, so it lives under `/moire/`. Manifest paths and public links account for that prefix.
 
@@ -30,7 +31,13 @@ moire/
 │   └── wallpapers.json
 ├── images/
 │   └── wallpapers/
+├── feeds/                  # generated at deploy time, not committed
+│   ├── all.txt
+│   ├── landscape.txt
+│   ├── portrait.txt
+│   └── square.txt
 ├── scripts/
+│   ├── generate_feeds.py
 │   └── sync_wallpapers.py
 └── assets/
     ├── css/
@@ -43,6 +50,7 @@ moire/
 - `images/wallpapers/` holds the original image files.
 - `data/wallpapers.json` is the public manifest and the gallery's only content source.
 - `scripts/sync_wallpapers.py` imports new images and refreshes their dimensions.
+- `scripts/generate_feeds.py` writes the plain-text feeds from the manifest.
 - `.nojekyll` tells GitHub Pages to publish files as-is.
 
 ## Add wallpapers
@@ -55,6 +63,7 @@ The `Sync wallpapers and deploy` workflow then:
 - Runs `scripts/sync_wallpapers.py` on a GitHub-hosted runner.
 - Adds any new images to `data/wallpapers.json`, preserving existing metadata and ordering.
 - Commits the updated manifest with a `github-actions[bot]` identity if it changed.
+- Generates `feeds/*.txt` from the updated manifest.
 - Deploys the updated site to GitHub Pages.
 
 No local Python installation is required.
@@ -127,6 +136,25 @@ The gallery uses the stored dimensions for filtering, so it does not load every 
 - The sync script never removes entries automatically, including when an image is missing.
 - To rename an image, rename both the file and its `image` path, or remove the old entry and run the sync script to add the new file.
 
+## Feeds
+
+Four permanent plain-text feeds are generated on every deployment:
+
+- <https://speyll.github.io/moire/feeds/all.txt>
+- <https://speyll.github.io/moire/feeds/landscape.txt>
+- <https://speyll.github.io/moire/feeds/portrait.txt>
+- <https://speyll.github.io/moire/feeds/square.txt>
+
+Each feed contains one absolute image URL per line and nothing else. URLs keep the manifest's manual order, and each orientation feed contains only wallpapers of that orientation. A feed with no matching wallpapers is an empty file.
+
+Feeds come from `data/wallpapers.json`, never from scanning the image directory. They are generated during deployment and are not committed, so they add no commits and cannot affect the manifest's ordering.
+
+Generate them locally when needed:
+
+```bash
+python3 scripts/generate_feeds.py
+```
+
 ## Preview locally
 
 The gallery fetches the manifest, so serve the site over HTTP instead of opening `index.html` with a `file://` URL.
@@ -167,7 +195,8 @@ If **Source** is left on **Deploy from a branch**, the `Deploy to GitHub Pages` 
 - Uses a GitHub-hosted Ubuntu runner with Python 3.12.
 - Runs `scripts/sync_wallpapers.py` without modifying the site's HTML, CSS, or JavaScript.
 - Commits only `data/wallpapers.json` when it changes, using `github-actions[bot]` and a `[skip ci]` message.
-- Uploads the repository root as the Pages artifact, including `.nojekyll`, and deploys it with `actions/deploy-pages`.
+- Generates `feeds/all.txt`, `feeds/landscape.txt`, `feeds/portrait.txt`, and `feeds/square.txt` after the manifest is final.
+- Uploads the repository root as the Pages artifact, including `.nojekyll` and the generated feeds, and deploys it with `actions/deploy-pages`.
 - Uses a `github-pages` concurrency group with `cancel-in-progress: false`, so pushes are queued instead of racing.
 - Grants only `contents: write` to the sync job and only `pages: write` plus `id-token: write` to the deploy job.
 - Pushes the bot commit with the workflow's `GITHUB_TOKEN`. Such pushes do not start new workflow runs, and the workflow also skips bot or `[skip ci]` pushes as a safeguard.
@@ -183,6 +212,7 @@ The `/moire/` project-site prefix is unchanged. Image paths in the manifest rema
 - **Copy shown** copies the current filtered results in their current sort order.
 - **Download list** saves all wallpaper URLs as `moire-wallpapers.txt`.
 - **Manifest** opens the public JSON manifest.
+- **Feeds** lists the four plain-text feeds. Each row has a copy button for the feed URL and a link that opens the feed itself.
 - Clicking a wallpaper opens the full-resolution preview. Use the arrow buttons or arrow keys to move, and Escape to close.
 - Each card has a copy button and an open-original link.
 

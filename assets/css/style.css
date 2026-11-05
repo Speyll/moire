@@ -799,6 +799,82 @@ code {
   }
 }
 
+/* Permanent wallpaper URL feeds */
+.feeds {
+  padding: 1.15rem 0 0;
+  margin-top: clamp(1.75rem, 4vw, 2.75rem);
+  border-top: 1px solid var(--line);
+}
+
+.feeds-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.feeds-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.6rem;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feed-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.feed-name {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+
+.feed-link {
+  padding-bottom: 1px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.73rem;
+  text-decoration: none;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.feed-link:hover {
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.feed-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.feed-copy svg {
+  width: 13px;
+  height: 13px;
+}
+
+.feed-copy:hover {
+  border-color: var(--line);
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
 .site-footer {
   display: flex;
   align-items: center;
@@ -1127,6 +1203,10 @@ code {
     align-items: flex-start;
     flex-direction: column;
     gap: 0.7rem;
+  }
+
+  .feeds-list {
+    gap: 0.45rem 1.25rem;
   }
 
   .preview-stage {

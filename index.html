@@ -56,6 +56,7 @@
       <a class="brand" href="./" aria-label="Moiré, home">Moiré</a>
       <div class="header-meta">
         <span class="header-count" id="header-count"></span>
+        <a class="header-link" href="#feeds">Feeds</a>
         <a class="header-link" id="manifest-link" href="data/wallpapers.json">Manifest</a>
       </div>
     </header>
@@ -139,6 +140,39 @@
           <p class="noscript">Moiré needs JavaScript to load the wallpaper manifest and display the gallery.</p>
         </noscript>
       </section>
+      <section class="feeds" id="feeds" aria-labelledby="feeds-title">
+        <h2 class="feeds-title" id="feeds-title">Feeds</h2>
+        <ul class="feeds-list">
+          <li class="feed-item">
+            <span class="feed-name">All</span>
+            <a class="feed-link" data-feed-link="all" href="feeds/all.txt" target="_blank" rel="noopener noreferrer">feeds/all.txt</a>
+            <button class="feed-copy" type="button" data-feed-copy="all" aria-label="Copy all feed URL" title="Copy feed URL">
+              <svg aria-hidden="true"><use href="#icon-copy"></use></svg>
+            </button>
+          </li>
+          <li class="feed-item">
+            <span class="feed-name">Landscape</span>
+            <a class="feed-link" data-feed-link="landscape" href="feeds/landscape.txt" target="_blank" rel="noopener noreferrer">feeds/landscape.txt</a>
+            <button class="feed-copy" type="button" data-feed-copy="landscape" aria-label="Copy landscape feed URL" title="Copy feed URL">
+              <svg aria-hidden="true"><use href="#icon-copy"></use></svg>
+            </button>
+          </li>
+          <li class="feed-item">
+            <span class="feed-name">Portrait</span>
+            <a class="feed-link" data-feed-link="portrait" href="feeds/portrait.txt" target="_blank" rel="noopener noreferrer">feeds/portrait.txt</a>
+            <button class="feed-copy" type="button" data-feed-copy="portrait" aria-label="Copy portrait feed URL" title="Copy feed URL">
+              <svg aria-hidden="true"><use href="#icon-copy"></use></svg>
+            </button>
+          </li>
+          <li class="feed-item">
+            <span class="feed-name">Square</span>
+            <a class="feed-link" data-feed-link="square" href="feeds/square.txt" target="_blank" rel="noopener noreferrer">feeds/square.txt</a>
+            <button class="feed-copy" type="button" data-feed-copy="square" aria-label="Copy square feed URL" title="Copy feed URL">
+              <svg aria-hidden="true"><use href="#icon-copy"></use></svg>
+            </button>
+          </li>
+        </ul>
+      </section>
     </main>
 
     <footer class="site-footer">
@@ -198,6 +232,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="assets/js/app.js?v=20261105-1" defer></script>
+  <script src="assets/js/app.js?v=20261105-2" defer></script>
 </body>
 </html>

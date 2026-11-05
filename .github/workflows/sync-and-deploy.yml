@@ -68,11 +68,17 @@ jobs:
 
           git push origin HEAD:main
 
+      # The manifest is final at this point, including the re-sync after a
+      # rebase, so the feeds always mirror the committed manual order.
+      - name: Generate wallpaper feeds
+        run: python3 scripts/generate_feeds.py
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
           path: .
           # Keep .nojekyll and other hidden static files in the deployment.
+          # Includes the generated feeds/ directory from the step above.
           include-hidden-files: true
 
   deploy:

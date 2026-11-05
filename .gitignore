@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Generated at deploy time by scripts/generate_feeds.py.
+feeds/
