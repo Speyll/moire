@@ -4,6 +4,7 @@
   const SITE_BASE = new URL("./", window.location.href);
   const BASE_PATH = SITE_BASE.pathname.replace(/\/+$/, "");
   const MANIFEST_URL = new URL("data/wallpapers.json", SITE_BASE).href;
+  const MANIFEST_TIMEOUT_MS = 15000;
   const VALID_ORIENTATIONS = new Set(["portrait", "landscape", "square"]);
   const collator = new Intl.Collator(undefined, {
     numeric: true,
@@ -59,6 +60,27 @@
   };
 
   let toastTimer = 0;
+
+  /**
+   * Fail early with a useful message if the HTML and JavaScript do not match.
+   * This catches stale pages, incomplete deploys, and removed controls before
+   * any event listener assumes an element exists.
+   */
+  function validatePageStructure() {
+    const missing = Object.entries(elements)
+      .filter(([key, value]) => key !== "orientationButtons" && !value)
+      .map(([key]) => key);
+
+    if (elements.orientationButtons.length === 0) {
+      missing.push("orientationButtons");
+    }
+
+    if (missing.length > 0) {
+      throw new Error(
+        `Required page elements are missing: ${missing.join(", ")}.`
+      );
+    }
+  }
 
   function asString(value) {
     return typeof value === "string" ? value.trim() : "";
@@ -507,11 +529,80 @@
     updateControls();
   }
 
+  /**
+   * Last-resort error display for problems that happen before the normal
+   * gallery state can be rendered. It deliberately uses direct DOM lookups so
+   * a single missing element cannot prevent the error from being shown.
+   */
+  function showInitializationError(error) {
+    console.error("Failed to initialize Moiré:", error);
+
+    state.loading = false;
+    state.error = error;
+
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "The gallery could not start.";
+    const gallery = document.getElementById("gallery");
+    const resultsCount = document.getElementById("results-count");
+    const headerCount = document.getElementById("header-count");
+    const errorState = document.getElementById("error-state");
+    const errorMessage = document.getElementById("error-message");
+
+    if (gallery) {
+      gallery.replaceChildren();
+      gallery.hidden = true;
+      gallery.setAttribute("aria-busy", "false");
+    }
+
+    for (const id of ["empty-collection", "empty-results"]) {
+      const element = document.getElementById(id);
+      if (element) element.hidden = true;
+    }
+
+    for (const id of ["copy-all", "copy-visible", "download-all"]) {
+      const element = document.getElementById(id);
+      if (element) element.disabled = true;
+    }
+
+    if (resultsCount) resultsCount.textContent = "Unavailable";
+    if (headerCount) headerCount.textContent = "";
+
+    if (errorMessage) {
+      errorMessage.textContent = `${message} Reload the page to try again.`;
+    }
+
+    if (errorState) {
+      errorState.hidden = false;
+    } else {
+      const fallback = document.createElement("p");
+      fallback.className = "noscript";
+      fallback.setAttribute("role", "alert");
+      fallback.textContent = `The wallpaper gallery could not start. ${message}`;
+      (document.querySelector("main") || document.body).prepend(fallback);
+    }
+
+    const retryButton = document.getElementById("retry-button");
+    if (retryButton) {
+      retryButton.onclick = () => window.location.reload();
+    }
+  }
+
   async function loadWallpapers() {
-    setLoading();
+    const controller = new AbortController();
+    const timeout = window.setTimeout(
+      () => controller.abort(),
+      MANIFEST_TIMEOUT_MS
+    );
 
     try {
-      const response = await fetch(MANIFEST_URL, { cache: "no-cache" });
+      setLoading();
+
+      const response = await fetch(MANIFEST_URL, {
+        cache: "no-cache",
+        signal: controller.signal,
+      });
       if (!response.ok) {
         throw new Error(
           `The wallpaper manifest returned HTTP ${response.status}.`
@@ -537,8 +628,15 @@
 
       applyFilters();
     } catch (error) {
-      console.error("Failed to load wallpapers:", error);
-      showError(error);
+      const displayError =
+        error?.name === "AbortError"
+          ? new Error("The wallpaper manifest took too long to load.")
+          : error;
+
+      console.error("Failed to load wallpapers:", displayError);
+      showError(displayError);
+    } finally {
+      window.clearTimeout(timeout);
     }
   }
 
@@ -889,11 +987,16 @@
   }
 
   function init() {
-    elements.manifestLink.href = MANIFEST_URL;
-    elements.footerManifestLink.href = MANIFEST_URL;
-    loadStateFromUrl();
-    bindEvents();
-    loadWallpapers();
+    try {
+      validatePageStructure();
+      elements.manifestLink.href = MANIFEST_URL;
+      elements.footerManifestLink.href = MANIFEST_URL;
+      loadStateFromUrl();
+      bindEvents();
+      loadWallpapers();
+    } catch (error) {
+      showInitializationError(error);
+    }
   }
 
   init();
